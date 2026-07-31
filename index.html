@@ -331,8 +331,7 @@
           <tr>
             <th>#</th>
             <th>OTM va Yo'nalish</th>
-            <th>Fanlar</th>
-            <th>Shakl / Til</th>
+            <th>Shakl</th>
             <th>Grant bali</th>
             <th>Kontrakt bali</th>
             <th>2026 kvotasi</th>
@@ -341,7 +340,7 @@
         </thead>
         <tbody id="tableBody">
           <tr>
-            <td colspan="8">
+            <td colspan="7">
               <div class="empty-state">
                 <div class="icon">🎓</div>
                 <p>Yuqoridagi filtrlash maydonlarini to'ldiring</p>
@@ -497,11 +496,11 @@ function resetFilters() {
   document.getElementById('paginationBar').style.display = 'none';
   document.getElementById('resultsTitle').textContent = "Filtrlash natijasi";
   document.getElementById('tableBody').innerHTML = `
-    <tr><td colspan="8">
+    <tr><td colspan="7">
       <div class="empty-state">
         <div class="icon">🎓</div>
         <p>Yuqoridagi filtrlash maydonlarini to'ldiring</p>
-        <small>Blok, ta'lim shakli, til va yig'ilgan ball bo'yicha filtrlang</small>
+        <small>Hudud, OTM, yo'nalish, ta'lim shakli va yig'ilgan ball bo'yicha filtrlang</small>
       </div>
     </td></tr>`;
 }
@@ -576,7 +575,7 @@ function renderTable() {
 
   if (total === 0) {
     document.getElementById('tableBody').innerHTML = `
-      <tr><td colspan="8">
+      <tr><td colspan="7">
         <div class="empty-state">
           <div class="icon">😔</div>
           <p>Natija topilmadi</p>
@@ -616,8 +615,7 @@ function renderTable() {
         <div class="direction-name">${d.yonalish}</div>
         <div style="margin-top:4px"><span class="code-badge">${d.kod}</span>${d.hudud ? ` <span class="code-badge" style="background:#f1f5f9;color:#555">📍 ${d.hudud}</span>` : ''}</div>
       </td>
-      <td class="subjects"><b>1:</b> ${d.fan1}<br><b>2:</b> ${d.fan2}</td>
-      <td>${shaklBadge(d.shakl)}<div style="margin-top:5px;font-size:0.82rem;color:#555">${d.til}</div></td>
+      <td>${shaklBadge(d.shakl)}</td>
       <td class="score-cell">${grantCell}</td>
       <td class="score-cell">${kontraktCell}</td>
       <td class="score-cell">${kvotaCell}</td>
