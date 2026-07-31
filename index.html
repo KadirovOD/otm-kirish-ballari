@@ -244,6 +244,23 @@
     <h2>Filtrlash</h2>
     <div class="filter-grid">
       <div class="filter-group">
+        <label>Hudud</label>
+        <select id="hudud" onchange="onHududChange()">
+          <option value="">Barchasi</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>OTM</label>
+        <select id="otmFilter">
+          <option value="">Barchasi</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Yoʻnalish</label>
+        <input type="text" id="yonalishSearch" list="yonalishList" placeholder="Masalan: Dasturiy injiniring" autocomplete="off">
+        <datalist id="yonalishList"></datalist>
+      </div>
+      <div class="filter-group">
         <label>1-Blok (1-Fan)</label>
         <select id="fan1">
           <option value="">Barchasi</option>
@@ -274,6 +291,13 @@
         <label>Yig'ilgan ball</label>
         <input type="number" id="ball" placeholder="Masalan: 165" min="0" max="189.9" step="0.1">
       </div>
+      <div class="filter-group">
+        <label>2026 kvotasi</label>
+        <select id="kvotaFilter">
+          <option value="">Barchasi</option>
+          <option value="only">Faqat 2026 kvotasi maʼlum</option>
+        </select>
+      </div>
       <div class="filter-group filter-actions">
         <label>&nbsp;</label>
         <button class="btn btn-primary" onclick="applyFilters()">Filtrlash</button>
@@ -287,6 +311,7 @@
     <div class="stat-badge"><span>🏅</span> Grant: <strong id="statGrant">0</strong></div>
     <div class="stat-badge"><span>📋</span> Kontrakt: <strong id="statKontrakt">0</strong></div>
     <div class="stat-badge"><span>🏫</span> OTMlar: <strong id="statOTM">0</strong> ta</div>
+    <div class="stat-badge"><span>🎯</span> 2026 kvotasi (jami): <strong id="statKvota">0</strong></div>
   </div>
 
   <div class="results-card" id="resultsCard">
@@ -297,6 +322,7 @@
         <button class="sort-btn active" id="sortGrant" onclick="sortBy('grant')">Grant bali ↓</button>
         <button class="sort-btn" id="sortKontrakt" onclick="sortBy('kontrakt')">Kontrakt bali ↓</button>
         <button class="sort-btn" id="sortOTM" onclick="sortBy('otm')">OTM nomi</button>
+        <button class="sort-btn" id="sortKvota" onclick="sortBy('kvota')">2026 kvota ↓</button>
       </div>
     </div>
     <div class="table-wrapper">
@@ -309,12 +335,13 @@
             <th>Shakl / Til</th>
             <th>Grant bali</th>
             <th>Kontrakt bali</th>
+            <th>2026 kvotasi</th>
             <th>Holat</th>
           </tr>
         </thead>
         <tbody id="tableBody">
           <tr>
-            <td colspan="7">
+            <td colspan="8">
               <div class="empty-state">
                 <div class="icon">🎓</div>
                 <p>Yuqoridagi filtrlash maydonlarini to'ldiring</p>
@@ -352,15 +379,20 @@ async function loadData() {
 
 function populateDropdowns() {
   const fan1Set = new Set(), fan2Set = new Set(), tilSet = new Set();
+  const hududSet = new Set(), yonalishSet = new Set();
   allData.forEach(d => {
     if (d.fan1 && d.fan1 !== 'nan') fan1Set.add(d.fan1);
     if (d.fan2 && d.fan2 !== 'nan') fan2Set.add(d.fan2);
     if (d.til && d.til !== 'nan') tilSet.add(d.til);
+    if (d.hudud) hududSet.add(d.hudud);
+    if (d.yonalish) yonalishSet.add(d.yonalish);
   });
 
   const fan1El = document.getElementById('fan1');
   const fan2El = document.getElementById('fan2');
   const tilEl = document.getElementById('til');
+  const hududEl = document.getElementById('hudud');
+  const yonalishListEl = document.getElementById('yonalishList');
 
   [...fan1Set].sort().forEach(v => {
     fan1El.innerHTML += `<option value="${v}">${v}</option>`;
@@ -371,17 +403,65 @@ function populateDropdowns() {
   [...tilSet].sort().forEach(v => {
     tilEl.innerHTML += `<option value="${v}">${v}</option>`;
   });
+  [...hududSet].sort((a, b) => a.localeCompare(b, 'uz')).forEach(v => {
+    hududEl.innerHTML += `<option value="${v}">${v}</option>`;
+  });
+  [...yonalishSet].sort((a, b) => a.localeCompare(b, 'uz')).forEach(v => {
+    yonalishListEl.innerHTML += `<option value="${v}"></option>`;
+  });
+
+  populateOtmDropdown();
+}
+
+function populateOtmDropdown() {
+  const hudud = document.getElementById('hudud').value;
+  const otmEl = document.getElementById('otmFilter');
+  const prevValue = otmEl.value;
+
+  const otmSet = new Set();
+  allData.forEach(d => {
+    if (hudud && d.hudud !== hudud) return;
+    otmSet.add(d.otm);
+  });
+
+  otmEl.innerHTML = '<option value="">Barchasi</option>';
+  [...otmSet].sort((a, b) => a.localeCompare(b, 'uz')).forEach(v => {
+    otmEl.innerHTML += `<option value="${v}">${v}</option>`;
+  });
+
+  if (otmSet.has(prevValue)) otmEl.value = prevValue;
+}
+
+function onHududChange() {
+  populateOtmDropdown();
+}
+
+function normText(s) {
+  return (s || '')
+    .toString()
+    .toLowerCase()
+    .replace(/[’‘´`ʻʼ]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/['"]/g, '')
+    .trim();
 }
 
 function applyFilters() {
+  const hudud = document.getElementById('hudud').value;
+  const otm = document.getElementById('otmFilter').value;
+  const yonalishQuery = normText(document.getElementById('yonalishSearch').value);
   const fan1 = document.getElementById('fan1').value;
   const fan2 = document.getElementById('fan2').value;
   const shakl = document.getElementById('shakl').value;
   const til = document.getElementById('til').value;
   const ballInput = document.getElementById('ball').value;
   const ball = ballInput !== '' ? parseFloat(ballInput) : null;
+  const kvotaFilter = document.getElementById('kvotaFilter').value;
 
   filteredData = allData.filter(d => {
+    if (hudud && d.hudud !== hudud) return false;
+    if (otm && d.otm !== otm) return false;
+    if (yonalishQuery && !normText(d.yonalish).includes(yonalishQuery)) return false;
     if (fan1 && d.fan1 !== fan1) return false;
     if (fan2 && d.fan2 !== fan2) return false;
     if (shakl && d.shakl !== shakl) return false;
@@ -391,6 +471,7 @@ function applyFilters() {
       if (minBall === null) return false;
       if (ball < minBall) return false;
     }
+    if (kvotaFilter === 'only' && (d.kvota_2026 === undefined || d.kvota_2026 === null)) return false;
     return true;
   });
 
@@ -401,17 +482,22 @@ function applyFilters() {
 }
 
 function resetFilters() {
+  document.getElementById('hudud').value = '';
+  populateOtmDropdown();
+  document.getElementById('otmFilter').value = '';
+  document.getElementById('yonalishSearch').value = '';
   document.getElementById('fan1').value = '';
   document.getElementById('fan2').value = '';
   document.getElementById('shakl').value = '';
   document.getElementById('til').value = '';
   document.getElementById('ball').value = '';
+  document.getElementById('kvotaFilter').value = '';
   filteredData = [];
   document.getElementById('statsBar').style.display = 'none';
   document.getElementById('paginationBar').style.display = 'none';
   document.getElementById('resultsTitle').textContent = "Filtrlash natijasi";
   document.getElementById('tableBody').innerHTML = `
-    <tr><td colspan="7">
+    <tr><td colspan="8">
       <div class="empty-state">
         <div class="icon">🎓</div>
         <p>Yuqoridagi filtrlash maydonlarini to'ldiring</p>
@@ -436,6 +522,8 @@ function doSort(field, rerender) {
     filteredData.sort((a, b) => (b.kontrakt_ball ?? -1) - (a.kontrakt_ball ?? -1));
   } else if (field === 'otm') {
     filteredData.sort((a, b) => a.otm.localeCompare(b.otm, 'uz'));
+  } else if (field === 'kvota') {
+    filteredData.sort((a, b) => (b.kvota_2026 ?? -1) - (a.kvota_2026 ?? -1));
   }
 }
 
@@ -449,11 +537,13 @@ function updateStats(userBall) {
       else if (d.kontrakt_ball !== null && userBall >= d.kontrakt_ball) kontrakt++;
     });
   }
+  const kvotaSum = filteredData.reduce((sum, d) => sum + (d.kvota_2026 ?? 0), 0);
 
   document.getElementById('statTotal').textContent = total;
   document.getElementById('statGrant').textContent = userBall !== null ? grant : '—';
   document.getElementById('statKontrakt').textContent = userBall !== null ? kontrakt : '—';
   document.getElementById('statOTM').textContent = otms;
+  document.getElementById('statKvota').textContent = kvotaSum.toLocaleString('uz');
   document.getElementById('statsBar').style.display = 'flex';
 }
 
@@ -486,7 +576,7 @@ function renderTable() {
 
   if (total === 0) {
     document.getElementById('tableBody').innerHTML = `
-      <tr><td colspan="7">
+      <tr><td colspan="8">
         <div class="empty-state">
           <div class="icon">😔</div>
           <p>Natija topilmadi</p>
@@ -514,18 +604,23 @@ function renderTable() {
       ? `<span class="status-badge ${status.cls}">${status.label}</span>`
       : `<span style="color:#ccc;font-size:0.8rem">Ball kiritilmagan</span>`;
 
+    const kvotaCell = (d.kvota_2026 !== undefined && d.kvota_2026 !== null)
+      ? `<div class="score-value">${d.kvota_2026}</div><div class="score-sub">oʻrin</div>`
+      : `<div class="score-value" style="color:#ccc">—</div>`;
+
     html += `
     <tr>
       <td style="color:#999;font-size:0.8rem">${rowNum}</td>
       <td>
         <div class="otm-name">${d.otm}</div>
         <div class="direction-name">${d.yonalish}</div>
-        <div style="margin-top:4px"><span class="code-badge">${d.kod}</span></div>
+        <div style="margin-top:4px"><span class="code-badge">${d.kod}</span>${d.hudud ? ` <span class="code-badge" style="background:#f1f5f9;color:#555">📍 ${d.hudud}</span>` : ''}</div>
       </td>
       <td class="subjects"><b>1:</b> ${d.fan1}<br><b>2:</b> ${d.fan2}</td>
       <td>${shaklBadge(d.shakl)}<div style="margin-top:5px;font-size:0.82rem;color:#555">${d.til}</div></td>
       <td class="score-cell">${grantCell}</td>
       <td class="score-cell">${kontraktCell}</td>
+      <td class="score-cell">${kvotaCell}</td>
       <td>${statusHtml}</td>
     </tr>`;
   });
